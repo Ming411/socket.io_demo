@@ -1,0 +1,14 @@
+// 用户模型
+const mongoose = require('mongoose');
+const userSchema = new mongoose.Schema({
+  // mongoose的验证
+  username: {
+    type: String,
+    required: true
+  },
+  password: {
+    type: String,
+    required: true
+  }
+});
+module.exports = userSchema;

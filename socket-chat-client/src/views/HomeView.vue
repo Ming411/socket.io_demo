@@ -1,0 +1,111 @@
+<template>
+  <div class="home">
+   <ul id="messages">
+      <!-- 聊天消息 -->
+      <li v-for="(message,index) in messages" :key="index">{{message}}</li>
+    </ul>
+    <form id="form" @submit.prevent="sendMessage">
+      <input v-model="inputMessage" id="input" autocomplete="off" /><button>Send</button></form>
+  </div>
+</template>
+
+<script>
+import { defineComponent, ref } from 'vue'
+import { io } from 'socket.io-client'
+import { useStore } from 'vuex'
+export default defineComponent({
+  name: 'HomeView',
+  setup () {
+    const store = useStore()
+    const inputMessage = ref('')
+    const messages = ref([])
+    // 建立socket连接
+    const socket = io('http://localhost:3000/', {
+      reconnectionDelayMax: 10000, // 重连时间
+      auth: { // 身份信息
+        token: store.state.user.token
+      },
+      query: { // 自定义请求参数
+        'my-key': 'my-value'
+      },
+      // 添加请求头
+      extraHeaders: {}
+    })
+    socket.on('connect', () => {
+      console.log('客户端建立连接成功')
+    })
+    socket.on('disconnect', reason => {
+      if (reason === 'io server disconnect') {
+        // 重新连接
+        socket.connect()
+      }
+    })
+    socket.on('connect_error', error => {
+      console.log('连接失败', error)
+    })
+    // 接收服务端返回的消息
+    socket.on('chat message', message => {
+      messages.value.push(message)
+    })
+    const sendMessage = () => {
+      if (inputMessage.value) {
+        socket.emit('chat message', inputMessage.value)
+        inputMessage.value = ''
+      }
+    }
+    return { sendMessage, inputMessage, messages }
+  }
+})
+</script>
+    <style>
+      body {
+        margin: 0;
+        padding-bottom: 3rem;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+          sans-serif;
+      }
+
+      #form {
+        background: rgba(0, 0, 0, 0.15);
+        padding: 0.25rem;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        height: 3rem;
+        box-sizing: border-box;
+        backdrop-filter: blur(10px);
+      }
+      #input {
+        border: none;
+        padding: 0 1rem;
+        flex-grow: 1;
+        border-radius: 2rem;
+        margin: 0.25rem;
+      }
+      #input:focus {
+        outline: none;
+      }
+      #form > button {
+        background: #333;
+        border: none;
+        padding: 0 1rem;
+        margin: 0.25rem;
+        border-radius: 3px;
+        outline: none;
+        color: #fff;
+      }
+
+      #messages {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+      }
+      #messages > li {
+        padding: 0.5rem 1rem;
+      }
+      #messages > li:nth-child(odd) {
+        background: #efefef;
+      }
+    </style>
